@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}BioAmplify Analytics - Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="bg-gradient p-5 rounded-3 text-center">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="fas fa-dna text-primary me-3"></i>
+                    BioAmplify Analytics
+                </h1>
+                <p class="lead mb-4">
+                    Comprehensive bioinformatics platform for comparing nucleic acid amplification techniques with advanced statistical analysis and cost optimization.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('data_input') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle me-2"></i>Start New Analysis
+                    </a>
+                    <a href="{{ url_for('analysis') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-chart-bar me-2"></i>View Experiments
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-microscope me-2"></i>
+                Supported Amplification Techniques
+            </h2>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-thermometer-three-quarters me-2"></i>qPCR</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Gold standard sensitivity</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Quantitative results</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Excellent multiplexing</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>High equipment cost</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Thermal cycling required</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Temp: 50-94°C | Time: 1-3 hours</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-infinity me-2"></i>LAMP</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Low equipment cost</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Isothermal operation</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Field suitable</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Complex primer design</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Limited multiplexing</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Temp: 60-65°C | Time: 15-60 min</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-danger">
+                <div class="card-header bg-danger text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>RPA</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Fastest results (5-20 min)</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Body temperature</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Minimal equipment</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Highest reagent cost</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Proprietary enzymes</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Temp: 37-42°C | Time: 5-20 min</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark text-center">
+                    <h5 class="mb-0"><i class="fas fa-rna me-2"></i>NASBA</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>RNA amplification</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Isothermal process</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Viral RNA detection</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>RNA targets only</li>
+                        <li><i class="fas fa-times text-danger me-2"></i>Multiple enzymes</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Temp: 41°C | Time: 90 min</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-calculator me-2"></i>
+                Statistical Analysis Features
+            </h2>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-pie fa-3x text-info mb-3"></i>
+                    <h5>Diagnostic Statistics</h5>
+                    <p class="text-muted">Sensitivity, Specificity, PPV, NPV with 95% confidence intervals</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-balance-scale fa-3x text-info mb-3"></i>
+                    <h5>Cohen's Kappa</h5>
+                    <p class="text-muted">Inter-rater agreement analysis using GraphPad methodology</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-dollar-sign fa-3x text-info mb-3"></i>
+                    <h5>Cost Analysis</h5>
+                    <p class="text-muted">Comprehensive cost comparison including equipment and reagents</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Experiments -->
+    {% if recent_experiments %}
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-history me-2"></i>
+                Recent Experiments
+            </h2>
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-flask me-1"></i>Name</th>
+                            <th><i class="fas fa-cogs me-1"></i>Technique</th>
+                            <th><i class="fas fa-calendar me-1"></i>Date</th>
+                            <th><i class="fas fa-chart-bar me-1"></i>Samples</th>
+                            <th><i class="fas fa-dollar-sign me-1"></i>Cost/Sample</th>
+                            <th><i class="fas fa-eye me-1"></i>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for experiment in recent_experiments %}
+                        {% set total_samples = experiment.true_positive + experiment.false_positive + experiment.true_negative + experiment.false_negative %}
+                        <tr>
+                            <td>
+                                <strong>{{ experiment.name }}</strong>
+                                {% if experiment.description %}
+                                <br><small class="text-muted">{{ experiment.description[:50] }}{% if experiment.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if experiment.technique == 'qPCR' %}bg-primary
+                                    {% elif experiment.technique == 'LAMP' %}bg-success
+                                    {% elif experiment.technique == 'RPA' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ experiment.technique }}
+                                </span>
+                            </td>
+                            <td>{{ experiment.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ total_samples }}</td>
+                            <td>${{ "%.2f"|format(experiment.total_cost / total_samples if total_samples > 0 else 0) }}</td>
+                            <td>
+                                <a href="{{ url_for('view_experiment', id=experiment.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center mt-3">
+                <a href="{{ url_for('analysis') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-1"></i>View All Experiments
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-flask fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">No experiments yet</h3>
+                <p class="text-muted mb-4">Start by uploading your experimental data or entering it manually.</p>
+                <a href="{{ url_for('data_input') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Create Your First Experiment
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

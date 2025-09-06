@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if experiment %}{{ experiment.name }} - Results{% else %}Comparison Results{% endif %} - BioAmplify Analytics
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if experiment and not comparison %}
+    <!-- Individual Experiment Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="fas fa-flask me-2"></i>
+                        {{ experiment.name }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('analysis') }}">Analysis</a></li>
+                            <li class="breadcrumb-item active">{{ experiment.name }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('export_results', format='pdf', experiment_id=experiment.id) }}" 
+                       class="btn btn-outline-danger">
+                        <i class="fas fa-file-pdf me-1"></i>PDF Report
+                    </a>
+                    <a href="{{ url_for('export_results', format='excel', experiment_id=experiment.id) }}" 
+                       class="btn btn-outline-success">
+                        <i class="fas fa-file-excel me-1"></i>Excel Export
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experiment Info -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Experiment Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Technique:</strong> 
+                            <span class="badge 
+                                {% if experiment.technique == 'qPCR' %}bg-primary
+                                {% elif experiment.technique == 'LAMP' %}bg-success
+                                {% elif experiment.technique == 'RPA' %}bg-danger
+                                {% else %}bg-warning{% endif %} ms-2">
+                                {{ experiment.technique }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Date Created:</strong> {{ experiment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                        {% if experiment.description %}
+                        <div class="col-12 mt-2">
+                            <strong>Description:</strong><br>
+                            {{ experiment.description }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-{{ 'primary' if experiment.technique == 'qPCR' else 'success' if experiment.technique == 'LAMP' else 'danger' if experiment.technique == 'RPA' else 'warning' }}">
+                <div class="card-header bg-{{ 'primary' if experiment.technique == 'qPCR' else 'success' if experiment.technique == 'LAMP' else 'danger' if experiment.technique == 'RPA' else 'warning' }} text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Quick Stats</h6>
+                </div>
+                <div class="card-body">
+                    {% set total_samples = experiment.true_positive + experiment.false_positive + experiment.true_negative + experiment.false_negative %}
+                    <div class="d-flex justify-content-between">
+                        <span>Total Samples:</span>
+                        <strong>{{ total_samples }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Cost per Sample:</span>
+                        <strong>${{ "%.2f"|format(experiment.total_cost / total_samples if total_samples > 0 else 0) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Total Cost:</span>
+                        <strong>${{ "%.2f"|format(experiment.total_cost) }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Confusion Matrix</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center">
+                            <thead>
+                                <tr>
+                                    <th class="bg-light"></th>
+                                    <th class="bg-primary text-white">Predicted Positive</th>
+                                    <th class="bg-primary text-white">Predicted Negative</th>
+                                    <th class="bg-secondary text-white">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th class="bg-primary text-white">Actual Positive</th>
+                                    <td class="bg-success text-white fs-4">{{ experiment.true_positive }}</td>
+                                    <td class="bg-danger text-white fs-4">{{ experiment.false_negative }}</td>
+                                    <td class="bg-secondary text-white">{{ experiment.true_positive + experiment.false_negative }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-primary text-white">Actual Negative</th>
+                                    <td class="bg-danger text-white fs-4">{{ experiment.false_positive }}</td>
+                                    <td class="bg-success text-white fs-4">{{ experiment.true_negative }}</td>
+                                    <td class="bg-secondary text-white">{{ experiment.false_positive + experiment.true_negative }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-secondary text-white">Total</th>
+                                    <td class="bg-secondary text-white">{{ experiment.true_positive + experiment.false_positive }}</td>
+                                    <td class="bg-secondary text-white">{{ experiment.false_negative + experiment.true_negative }}</td>
+                                    <td class="bg-dark text-white fs-5">{{ total_samples }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Classification Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="confusionChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostic Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Diagnostic Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value (%)</th>
+                                    <th>95% Confidence Interval</th>
+                                    <th>Interpretation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Sensitivity (Recall)</strong><br><small class="text-muted">True Positive Rate</small></td>
+                                    <td>
+                                        <span class="fs-5 fw-bold {% if statistics.sensitivity.percentage >= 90 %}text-success{% elif statistics.sensitivity.percentage >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ "%.2f"|format(statistics.sensitivity.percentage) }}%
+                                        </span>
+                                    </td>
+                                    <td>95%CI {{ "%.2f"|format(statistics.sensitivity.ci_lower * 100) }}%-{{ "%.2f"|format(statistics.sensitivity.ci_upper * 100) }}%</td>
+                                    <td>
+                                        {% if statistics.sensitivity.percentage >= 95 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif statistics.sensitivity.percentage >= 85 %}
+                                        <span class="badge bg-info">Good</span>
+                                        {% elif statistics.sensitivity.percentage >= 70 %}
+                                        <span class="badge bg-warning">Fair</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Poor</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Specificity</strong><br><small class="text-muted">True Negative Rate</small></td>
+                                    <td>
+                                        <span class="fs-5 fw-bold {% if statistics.specificity.percentage >= 90 %}text-success{% elif statistics.specificity.percentage >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ "%.2f"|format(statistics.specificity.percentage) }}%
+                                        </span>
+                                    </td>
+                                    <td>95%CI {{ "%.2f"|format(statistics.specificity.ci_lower * 100) }}%-{{ "%.2f"|format(statistics.specificity.ci_upper * 100) }}%</td>
+                                    <td>
+                                        {% if statistics.specificity.percentage >= 95 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif statistics.specificity.percentage >= 85 %}
+                                        <span class="badge bg-info">Good</span>
+                                        {% elif statistics.specificity.percentage >= 70 %}
+                                        <span class="badge bg-warning">Fair</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Poor</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Positive Predictive Value</strong><br><small class="text-muted">Precision</small></td>
+                                    <td>
+                                        <span class="fs-5 fw-bold">{{ "%.2f"|format(statistics.ppv.percentage) }}%</span>
+                                    </td>
+                                    <td>95%CI {{ "%.2f"|format(statistics.ppv.ci_lower * 100) }}%-{{ "%.2f"|format(statistics.ppv.ci_upper * 100) }}%</td>
+                                    <td><small class="text-muted">Positive results reliability</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Negative Predictive Value</strong><br><small class="text-muted">NPV</small></td>
+                                    <td>
+                                        <span class="fs-5 fw-bold">{{ "%.2f"|format(statistics.npv.percentage) }}%</span>
+                                    </td>
+                                    <td>95%CI {{ "%.2f"|format(statistics.npv.ci_lower * 100) }}%-{{ "%.2f"|format(statistics.npv.ci_upper * 100) }}%</td>
+                                    <td><small class="text-muted">Negative results reliability</small></td>
+                                </tr>
+                                <tr class="table-info">
+                                    <td><strong>Accuracy</strong><br><small class="text-muted">Overall Correctness</small></td>
+                                    <td>
+                                        <span class="fs-5 fw-bold text-info">{{ "%.2f"|format(statistics.accuracy.percentage) }}%</span>
+                                    </td>
+                                    <td>95%CI {{ "%.2f"|format(statistics.accuracy.ci_lower * 100) }}%-{{ "%.2f"|format(statistics.accuracy.ci_upper * 100) }}%</td>
+                                    <td>
+                                        {% if statistics.accuracy.percentage >= 95 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif statistics.accuracy.percentage >= 85 %}
+                                        <span class="badge bg-info">Good</span>
+                                        {% elif statistics.accuracy.percentage >= 70 %}
+                                        <span class="badge bg-warning">Fair</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Poor</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-microscope me-2"></i>Advanced Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>F1 Score</strong></td>
+                                <td>{{ "%.3f"|format(statistics.f1_score) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Matthews Correlation Coefficient</strong></td>
+                                <td>{{ "%.3f"|format(statistics.mcc) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Positive Likelihood Ratio</strong></td>
+                                <td>
+                                    {% if statistics.likelihood_ratios.positive > 1000 %}
+                                    ∞
+                                    {% else %}
+                                    {{ "%.2f"|format(statistics.likelihood_ratios.positive) }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Negative Likelihood Ratio</strong></td>
+                                <td>
+                                    {% if statistics.likelihood_ratios.negative > 1000 %}
+                                    ∞
+                                    {% else %}
+                                    {{ "%.3f"|format(statistics.likelihood_ratios.negative) }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Diagnostic Odds Ratio</strong></td>
+                                <td>
+                                    {% if statistics.diagnostic_odds_ratio > 1000 %}
+                                    ∞
+                                    {% else %}
+                                    {{ "%.2f"|format(statistics.diagnostic_odds_ratio) }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Prevalence</strong></td>
+                                <td>{{ "%.2f"|format(statistics.prevalence.percentage) }}%</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Cohen's Kappa</strong></td>
+                                <td>
+                                    {{ "%.3f"|format(statistics.cohens_kappa.value) }}<br>
+                                    <small class="text-muted">{{ "%.0f"|format(statistics.confidence_level * 100) }}%CI {{ "%.3f"|format(statistics.cohens_kappa.ci_lower) }}-{{ "%.3f"|format(statistics.cohens_kappa.ci_upper) }}</small><br>
+                                    <span class="badge {% if statistics.cohens_kappa.value >= 0.81 %}bg-success{% elif statistics.cohens_kappa.value >= 0.61 %}bg-info{% elif statistics.cohens_kappa.value >= 0.41 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ statistics.cohens_kappa.interpretation }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Performance Visualization</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Cost Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Cost Component</th>
+                                            <th>Unit Cost</th>
+                                            <th>Quantity</th>
+                                            <th>Total Cost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Equipment Cost</strong><br><small class="text-muted">Amortized over 5 years</small></td>
+                                            <td>${{ "%.2f"|format(cost_data.equipment_cost) }}</td>
+                                            <td>1 unit</td>
+                                            <td>${{ "%.2f"|format(cost_data.equipment_cost / 5) }}/year</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Reagent Cost</strong><br><small class="text-muted">Per test</small></td>
+                                            <td>${{ "%.2f"|format(cost_data.reagent_cost_per_test) }}</td>
+                                            <td>{{ total_samples }} samples</td>
+                                            <td>${{ "%.2f"|format(cost_data.reagent_cost_per_test * total_samples) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Maintenance Cost</strong><br><small class="text-muted">Annual</small></td>
+                                            <td>${{ "%.2f"|format(cost_data.maintenance_cost_annual) }}</td>
+                                            <td>1 year</td>
+                                            <td>${{ "%.2f"|format(cost_data.maintenance_cost_annual) }}</td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td><strong>Total Study Cost</strong></td>
+                                            <td colspan="2"></td>
+                                            <td><strong>${{ "%.2f"|format(experiment.total_cost) }}</strong></td>
+                                        </tr>
+                                        <tr class="table-info">
+                                            <td><strong>Cost per Sample</strong></td>
+                                            <td colspan="2"></td>
+                                            <td><strong>${{ "%.2f"|format(experiment.total_cost / total_samples if total_samples > 0 else 0) }}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">{{ experiment.technique }} Characteristics</h6>
+                                </div>
+                                <div class="card-body">
+                                    <small>
+                                        <div class="mb-2">
+                                            <strong>Temperature:</strong><br>
+                                            {{ cost_data.temperature_requirement }}
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Time per Test:</strong><br>
+                                            {{ cost_data.time_per_test_minutes }} minutes
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Throughput:</strong><br>
+                                            {{ cost_data.throughput_samples_per_hour }} samples/hour
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Power Consumption:</strong><br>
+                                            {{ cost_data.power_consumption_watts }} watts
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Field Suitability:</strong><br>
+                                            <span class="badge {% if cost_data.field_suitability == 'Excellent' %}bg-success{% elif cost_data.field_suitability == 'Good' %}bg-info{% elif cost_data.field_suitability == 'Moderate' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ cost_data.field_suitability }}
+                                            </span>
+                                        </div>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif comparison %}
+    <!-- Comparison Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-2">
+                        <i class="fas fa-balance-scale me-2"></i>
+                        {{ comparison.name }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('analysis') }}">Analysis</a></li>
+                            <li class="breadcrumb-item active">Comparison</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experiments Being Compared -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-flask me-2"></i>Experiments in Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for experiment in experiments %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-{{ 'primary' if experiment.technique == 'qPCR' else 'success' if experiment.technique == 'LAMP' else 'danger' if experiment.technique == 'RPA' else 'warning' }}">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ experiment.name }}</h6>
+                                    <p class="card-text">
+                                        <span class="badge bg-{{ 'primary' if experiment.technique == 'qPCR' else 'success' if experiment.technique == 'LAMP' else 'danger' if experiment.technique == 'RPA' else 'warning' }}">
+                                            {{ experiment.technique }}
+                                        </span>
+                                    </p>
+                                    {% set exp_stats = experiment.get_statistics() %}
+                                    <small class="text-muted">
+                                        Sensitivity: {{ "%.1f"|format(exp_stats.sensitivity.percentage) }}%<br>
+                                        Specificity: {{ "%.1f"|format(exp_stats.specificity.percentage) }}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cohen's Kappa Results -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Cohen's Kappa Analysis Results</h5>
+                </div>
+                <div class="card-body">
+                    {% for comparison_name, kappa_data in kappa_results.items() %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">{{ comparison_name }}</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Kappa Value:</strong></td>
+                                            <td>
+                                                <span class="fs-5 fw-bold {% if kappa_data.kappa >= 0.8 %}text-success{% elif kappa_data.kappa >= 0.6 %}text-info{% elif kappa_data.kappa >= 0.4 %}text-warning{% else %}text-danger{% endif %}">
+                                                    {{ "%.4f"|format(kappa_data.kappa) }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>95% Confidence Interval:</strong></td>
+                                            <td>{{ "%.4f"|format(kappa_data.confidence_interval.lower) }} to {{ "%.4f"|format(kappa_data.confidence_interval.upper) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Standard Error:</strong></td>
+                                            <td>{{ "%.4f"|format(kappa_data.standard_error) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Sample Size:</strong></td>
+                                            <td>{{ kappa_data.sample_size }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert 
+                                        {% if kappa_data.kappa >= 0.8 %}alert-success
+                                        {% elif kappa_data.kappa >= 0.6 %}alert-info  
+                                        {% elif kappa_data.kappa >= 0.4 %}alert-warning
+                                        {% elif kappa_data.kappa >= 0.2 %}alert-warning
+                                        {% else %}alert-danger{% endif %}">
+                                        <h6 class="alert-heading">Agreement Level</h6>
+                                        <p class="mb-0"><strong>{{ kappa_data.interpretation }}</strong></p>
+                                        <hr>
+                                        <small>
+                                            {% if kappa_data.kappa >= 0.8 %}
+                                            Techniques show very good agreement (κ ≥ 0.81)
+                                            {% elif kappa_data.kappa >= 0.6 %}
+                                            Techniques show good agreement (0.61 ≤ κ ≤ 0.80)
+                                            {% elif kappa_data.kappa >= 0.4 %}
+                                            Techniques show moderate agreement (0.41 ≤ κ ≤ 0.60)
+                                            {% elif kappa_data.kappa >= 0.2 %}
+                                            Techniques show fair agreement (0.21 ≤ κ ≤ 0.40)
+                                            {% else %}
+                                            Techniques show poor agreement (κ ≤ 0.20)
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Error State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <h4>No results to display</h4>
+                <p>The requested experiment or comparison could not be found.</p>
+                <a href="{{ url_for('analysis') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if experiment and not comparison %}
+    // Create confusion matrix chart
+    createConfusionChart();
+    // Create performance chart
+    createPerformanceChart();
+    {% endif %}
+});
+
+{% if experiment and not comparison %}
+function createConfusionChart() {
+    const ctx = document.getElementById('confusionChart').getContext('2d');
+    
+    const data = {
+        labels: ['True Positive', 'False Positive', 'True Negative', 'False Negative'],
+        datasets: [{
+            data: [{{ experiment.true_positive }}, {{ experiment.false_positive }}, {{ experiment.true_negative }}, {{ experiment.false_negative }}],
+            backgroundColor: [
+                '#28a745',  // Green for TP
+                '#dc3545',  // Red for FP
+                '#28a745',  // Green for TN
+                '#dc3545'   // Red for FN
+            ],
+            borderColor: '#ffffff',
+            borderWidth: 2
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Classification Results'
+                }
+            }
+        }
+    });
+}
+
+function createPerformanceChart() {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    const statistics = {{ statistics|tojson }};
+    
+    const data = {
+        labels: ['Sensitivity', 'Specificity', 'PPV', 'NPV', 'Accuracy'],
+        datasets: [{
+            label: 'Performance (%)',
+            data: [
+                statistics.sensitivity.percentage,
+                statistics.specificity.percentage,
+                statistics.ppv.percentage,
+                statistics.npv.percentage,
+                statistics.accuracy.percentage
+            ],
+            backgroundColor: 'rgba(13, 110, 253, 0.2)',
+            borderColor: 'rgba(13, 110, 253, 1)',
+            borderWidth: 2,
+            fill: true
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+{% endif %}
+</script>
+{% endblock %}

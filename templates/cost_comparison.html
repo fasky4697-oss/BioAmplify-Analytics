@@ -1,0 +1,685 @@
+{% extends "base.html" %}
+
+{% block title %}Cost Comparison - BioAmplify Analytics{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-dollar-sign me-2"></i>
+                Cost Comparison Analysis
+            </h1>
+            <p class="lead mb-4">
+                Compare costs and cost-effectiveness across different nucleic acid amplification techniques.
+            </p>
+        </div>
+    </div>
+
+    <!-- Technique Cost Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Technique Cost Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for technique, data in cost_data.items() %}
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card border-{{ 'primary' if technique == 'qPCR' else 'success' if technique == 'LAMP' else 'danger' if technique == 'RPA' else 'warning' }} h-100">
+                                <div class="card-header bg-{{ 'primary' if technique == 'qPCR' else 'success' if technique == 'LAMP' else 'danger' if technique == 'RPA' else 'warning' }} text-white text-center">
+                                    <h5 class="mb-0">{{ technique }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="display-6 fw-bold text-{{ 'primary' if technique == 'qPCR' else 'success' if technique == 'LAMP' else 'danger' if technique == 'RPA' else 'warning' }}">
+                                            ฿{{ "%.2f"|format(data.reagent_cost_per_test) }} <small class="text-muted">(${{ "%.2f"|format(data.reagent_cost_per_test / 35) }})</small>
+                                        </div>
+                                        <small class="text-muted">per test</small>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Equipment Cost:</strong><br>
+                                        <span class="text-muted">฿{{ "%.0f"|format(data.equipment_cost) }} <small>(${{ "%.0f"|format(data.equipment_cost / 35) }})</small></span>
+                                        <small class="text-muted">(฿{{ "%.0f"|format(data.equipment_cost_range[0]) }} - ฿{{ "%.0f"|format(data.equipment_cost_range[1]) }})<br>(${{ "%.0f"|format(data.equipment_cost_range[0] / 35) }} - ${{ "%.0f"|format(data.equipment_cost_range[1] / 35) }})</small>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Reagent Range:</strong><br>
+                                        <span class="text-muted">฿{{ "%.2f"|format(data.reagent_cost_range[0]) }} - ฿{{ "%.2f"|format(data.reagent_cost_range[1]) }}<br><small>(${{ "%.2f"|format(data.reagent_cost_range[0] / 35) }} - ${{ "%.2f"|format(data.reagent_cost_range[1] / 35) }})</small></span>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Time per Test:</strong><br>
+                                        <span class="text-muted">{{ data.time_per_test_minutes }} minutes</span>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Throughput:</strong><br>
+                                        <span class="text-muted">{{ data.throughput_samples_per_hour }} samples/hour</span>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Power:</strong><br>
+                                        <span class="text-muted">{{ data.power_consumption_watts }}W</span>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <span class="badge bg-{{ 'success' if data.field_suitability == 'Excellent' else 'info' if data.field_suitability == 'Good' else 'warning' if data.field_suitability == 'Moderate' else 'danger' }}">
+                                            {{ data.field_suitability }} Field Use
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Calculator -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Cost Calculator</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="sampleCount" class="form-label">Number of Samples</label>
+                                <input type="number" class="form-control" id="sampleCount" value="100" min="1" max="10000">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="studyDuration" class="form-label">Study Duration (years)</label>
+                                <input type="number" class="form-control" id="studyDuration" value="1" min="0.1" max="10" step="0.1">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="powerCost" class="form-label">Power Cost (฿/kWh)</label>
+                                <input type="number" class="form-control" id="powerCost" value="4.20" min="2.00" max="8.00" step="0.10">
+                                <small class="text-muted">Thai electricity rate (~$0.12/kWh)</small>
+                            </div>
+                            
+                            <button class="btn btn-primary" id="calculateCosts">
+                                <i class="fas fa-calculator me-2"></i>Calculate Costs
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="costCalculationTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Technique</th>
+                                            <th>Equipment Cost<br><small class="text-muted">(฿ / $)</small></th>
+                                            <th>Reagent Cost<br><small class="text-muted">(฿ / $)</small></th>
+                                            <th>Power Cost<br><small class="text-muted">(฿ / $)</small></th>
+                                            <th>Maintenance<br><small class="text-muted">(฿ / $)</small></th>
+                                            <th>Total Cost<br><small class="text-muted">(฿ / $)</small></th>
+                                            <th>Cost/Sample<br><small class="text-muted">(฿ / $)</small></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="costCalculationBody">
+                                        <!-- Dynamic content will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Comparison Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Cost Analysis Charts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <canvas id="costBreakdownChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <canvas id="costPerSampleChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <canvas id="sampleSizeScalingChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if technique_experiments %}
+    <!-- Real Experiment Data -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-flask me-2"></i>Real Experiment Cost Analysis</h5>
+                </div>
+                <div class="card-body">
+                    {% for technique, experiments in technique_experiments.items() %}
+                    <div class="mb-4">
+                        <h6 class="text-{{ 'primary' if technique == 'qPCR' else 'success' if technique == 'LAMP' else 'danger' if technique == 'RPA' else 'warning' }}">
+                            <i class="fas fa-cogs me-2"></i>{{ technique }} Experiments
+                        </h6>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Experiment</th>
+                                        <th>Samples</th>
+                                        <th>Reagent Cost</th>
+                                        <th>Total Cost</th>
+                                        <th>Cost/Sample</th>
+                                        <th>Sensitivity</th>
+                                        <th>Specificity</th>
+                                        <th>Cost-Effectiveness</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for experiment in experiments %}
+                                    {% set total_samples = experiment.true_positive + experiment.false_positive + experiment.true_negative + experiment.false_negative %}
+                                    {% set stats = experiment.get_statistics() %}
+                                    {% set cost_per_sample = experiment.total_cost / total_samples if total_samples > 0 else 0 %}
+                                    {% set utility_score = (stats.sensitivity.percentage + stats.specificity.percentage) / 2 %}
+                                    {% set cost_effectiveness = cost_per_sample / utility_score * 100 if utility_score > 0 else -1 %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('view_experiment', id=experiment.id) }}" class="text-decoration-none">
+                                                {{ experiment.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ total_samples }}</td>
+                                        <td>฿{{ "%.2f"|format(experiment.reagent_cost * total_samples) }}<br><small class="text-muted">${{ "%.2f"|format((experiment.reagent_cost * total_samples) / 35) }}</small></td>
+                                        <td>฿{{ "%.2f"|format(experiment.total_cost) }}<br><small class="text-muted">${{ "%.2f"|format(experiment.total_cost / 35) }}</small></td>
+                                        <td>฿{{ "%.2f"|format(cost_per_sample) }}<br><small class="text-muted">${{ "%.2f"|format(cost_per_sample / 35) }}</small></td>
+                                        <td>{{ "%.1f"|format(stats.sensitivity.percentage) }}%</td>
+                                        <td>{{ "%.1f"|format(stats.specificity.percentage) }}%</td>
+                                        <td>
+                                            {% if cost_effectiveness == -1 %}
+                                            N/A
+                                            {% else %}
+                                            ฿{{ "%.3f"|format(cost_effectiveness) }}
+                                            {% endif %}
+                                            <small class="d-block text-muted">per utility point</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cost-Effectiveness Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-balance-scale-right me-2"></i>Cost-Effectiveness Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-medal me-2"></i>Best for Small Studies (&lt;50 samples)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="badge bg-danger fs-6 p-2">RPA</div>
+                                    </div>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="fas fa-check text-success me-2"></i>Lowest equipment cost</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Fastest results</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Minimal infrastructure</li>
+                                        <li><i class="fas fa-times text-danger me-2"></i>High reagent costs</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-medal me-2"></i>Best for Medium Studies (50-500 samples)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="badge bg-success fs-6 p-2">LAMP</div>
+                                    </div>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="fas fa-check text-success me-2"></i>Balanced costs</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Good performance</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Field suitable</li>
+                                        <li><i class="fas fa-times text-danger me-2"></i>Complex primer design</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-medal me-2"></i>Best for Large Studies (&gt;500 samples)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="badge bg-primary fs-6 p-2">qPCR</div>
+                                    </div>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="fas fa-check text-success me-2"></i>Gold standard accuracy</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>High throughput</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Excellent multiplexing</li>
+                                        <li><i class="fas fa-times text-danger me-2"></i>High initial investment</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Comparison Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detailed Technique Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Characteristic</th>
+                                    <th class="text-center">qPCR</th>
+                                    <th class="text-center">LAMP</th>
+                                    <th class="text-center">RPA</th>
+                                    <th class="text-center">NASBA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Equipment Cost</strong></td>
+                                    <td class="text-center">฿{{ "%.0f"|format(cost_data.qPCR.equipment_cost) }}<br><small class="text-muted">${{ "%.0f"|format(cost_data.qPCR.equipment_cost / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.0f"|format(cost_data.LAMP.equipment_cost) }}<br><small class="text-muted">${{ "%.0f"|format(cost_data.LAMP.equipment_cost / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.0f"|format(cost_data.RPA.equipment_cost) }}<br><small class="text-muted">${{ "%.0f"|format(cost_data.RPA.equipment_cost / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.0f"|format(cost_data.NASBA.equipment_cost) }}<br><small class="text-muted">${{ "%.0f"|format(cost_data.NASBA.equipment_cost / 35) }}</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Reagent Cost/Test</strong></td>
+                                    <td class="text-center">฿{{ "%.2f"|format(cost_data.qPCR.reagent_cost_per_test) }}<br><small class="text-muted">${{ "%.2f"|format(cost_data.qPCR.reagent_cost_per_test / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.2f"|format(cost_data.LAMP.reagent_cost_per_test) }}<br><small class="text-muted">${{ "%.2f"|format(cost_data.LAMP.reagent_cost_per_test / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.2f"|format(cost_data.RPA.reagent_cost_per_test) }}<br><small class="text-muted">${{ "%.2f"|format(cost_data.RPA.reagent_cost_per_test / 35) }}</small></td>
+                                    <td class="text-center">฿{{ "%.2f"|format(cost_data.NASBA.reagent_cost_per_test) }}<br><small class="text-muted">${{ "%.2f"|format(cost_data.NASBA.reagent_cost_per_test / 35) }}</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Time per Test</strong></td>
+                                    <td class="text-center">{{ cost_data.qPCR.time_per_test_minutes }} min</td>
+                                    <td class="text-center">{{ cost_data.LAMP.time_per_test_minutes }} min</td>
+                                    <td class="text-center">{{ cost_data.RPA.time_per_test_minutes }} min</td>
+                                    <td class="text-center">{{ cost_data.NASBA.time_per_test_minutes }} min</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Throughput/Hour</strong></td>
+                                    <td class="text-center">{{ cost_data.qPCR.throughput_samples_per_hour }}</td>
+                                    <td class="text-center">{{ cost_data.LAMP.throughput_samples_per_hour }}</td>
+                                    <td class="text-center">{{ cost_data.RPA.throughput_samples_per_hour }}</td>
+                                    <td class="text-center">{{ cost_data.NASBA.throughput_samples_per_hour }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Power Consumption</strong></td>
+                                    <td class="text-center">{{ cost_data.qPCR.power_consumption_watts }}W</td>
+                                    <td class="text-center">{{ cost_data.LAMP.power_consumption_watts }}W</td>
+                                    <td class="text-center">{{ cost_data.RPA.power_consumption_watts }}W</td>
+                                    <td class="text-center">{{ cost_data.NASBA.power_consumption_watts }}W</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Operator Skill</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger">{{ cost_data.qPCR.operator_skill_required }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ cost_data.LAMP.operator_skill_required }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ cost_data.RPA.operator_skill_required }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ cost_data.NASBA.operator_skill_required }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Field Suitability</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger">{{ cost_data.qPCR.field_suitability }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ cost_data.LAMP.field_suitability }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ cost_data.RPA.field_suitability }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning">{{ cost_data.NASBA.field_suitability }}</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const costData = {{ cost_data|tojson }};
+    
+    // Initialize charts
+    createCostBreakdownChart();
+    createCostPerSampleChart();
+    createSampleSizeScalingChart();
+    
+    // Calculator event handler
+    document.getElementById('calculateCosts').addEventListener('click', calculateCosts);
+    
+    // Initial calculation
+    calculateCosts();
+});
+
+function calculateCosts() {
+    const sampleCount = parseInt(document.getElementById('sampleCount').value) || 100;
+    const studyDuration = parseFloat(document.getElementById('studyDuration').value) || 1;
+    const powerCost = parseFloat(document.getElementById('powerCost').value) || 4.2;
+    
+    const costData = {{ cost_data|tojson }};
+    const tbody = document.getElementById('costCalculationBody');
+    
+    let html = '';
+    const techniques = ['qPCR', 'LAMP', 'RPA', 'NASBA'];
+    const colors = ['primary', 'success', 'danger', 'warning'];
+    
+    techniques.forEach((technique, index) => {
+        const data = costData[technique];
+        
+        // Equipment cost (amortized over 5 years)
+        const equipmentCost = (data.equipment_cost / 5) * studyDuration;
+        
+        // Reagent cost
+        const reagentCost = data.reagent_cost_per_test * sampleCount;
+        
+        // Power cost
+        const powerConsumption = data.power_consumption_watts / 1000; // Convert to kW
+        const timePerTest = data.time_per_test_minutes / 60; // Convert to hours
+        const powerCostTotal = powerConsumption * timePerTest * sampleCount * powerCost;
+        
+        // Maintenance cost
+        const maintenanceCost = data.maintenance_cost_annual * studyDuration;
+        
+        // Total cost
+        const totalCost = equipmentCost + reagentCost + powerCostTotal + maintenanceCost;
+        const costPerSample = totalCost / sampleCount;
+        
+        html += `
+            <tr>
+                <td><span class="badge bg-${colors[index]}">${technique}</span></td>
+                <td>฿${equipmentCost.toFixed(2)}<br><small class="text-muted">$${(equipmentCost/35).toFixed(2)}</small></td>
+                <td>฿${reagentCost.toFixed(2)}<br><small class="text-muted">$${(reagentCost/35).toFixed(2)}</small></td>
+                <td>฿${powerCostTotal.toFixed(2)}<br><small class="text-muted">$${(powerCostTotal/35).toFixed(2)}</small></td>
+                <td>฿${maintenanceCost.toFixed(2)}<br><small class="text-muted">$${(maintenanceCost/35).toFixed(2)}</small></td>
+                <td><strong>฿${totalCost.toFixed(2)}</strong><br><small class="text-muted">$${(totalCost/35).toFixed(2)}</small></td>
+                <td><strong>฿${costPerSample.toFixed(2)}</strong><br><small class="text-muted">$${(costPerSample/35).toFixed(2)}</small></td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    
+    // Update charts with new data
+    updateCharts(sampleCount, studyDuration, powerCost);
+}
+
+function createCostBreakdownChart() {
+    const ctx = document.getElementById('costBreakdownChart').getContext('2d');
+    
+    window.costBreakdownChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['qPCR', 'LAMP', 'RPA', 'NASBA'],
+            datasets: [
+                {
+                    label: 'Equipment',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: '#6c757d'
+                },
+                {
+                    label: 'Reagents',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: '#0d6efd'
+                },
+                {
+                    label: 'Power',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: '#198754'
+                },
+                {
+                    label: 'Maintenance',
+                    data: [0, 0, 0, 0],
+                    backgroundColor: '#ffc107'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    stacked: true
+                },
+                y: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Cost (฿)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Cost Breakdown by Component'
+                }
+            }
+        }
+    });
+}
+
+function createCostPerSampleChart() {
+    const ctx = document.getElementById('costPerSampleChart').getContext('2d');
+    
+    window.costPerSampleChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['qPCR', 'LAMP', 'RPA', 'NASBA'],
+            datasets: [{
+                data: [0, 0, 0, 0],
+                backgroundColor: ['#0d6efd', '#198754', '#dc3545', '#ffc107']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Cost per Sample Comparison'
+                }
+            }
+        }
+    });
+}
+
+function createSampleSizeScalingChart() {
+    const ctx = document.getElementById('sampleSizeScalingChart').getContext('2d');
+    
+    window.sampleSizeScalingChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'qPCR',
+                    data: [],
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.1
+                },
+                {
+                    label: 'LAMP',
+                    data: [],
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                    tension: 0.1
+                },
+                {
+                    label: 'RPA',
+                    data: [],
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    tension: 0.1
+                },
+                {
+                    label: 'NASBA',
+                    data: [],
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Number of Samples'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Cost per Sample (฿)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Cost per Sample vs Sample Size'
+                }
+            }
+        }
+    });
+    
+    // Generate sample size scaling data
+    updateSampleSizeScaling();
+}
+
+function updateCharts(sampleCount, studyDuration, powerCost) {
+    const costData = {{ cost_data|tojson }};
+    const techniques = ['qPCR', 'LAMP', 'RPA', 'NASBA'];
+    
+    const equipmentCosts = [];
+    const reagentCosts = [];
+    const powerCosts = [];
+    const maintenanceCosts = [];
+    const costsPerSample = [];
+    
+    techniques.forEach(technique => {
+        const data = costData[technique];
+        
+        const equipmentCost = (data.equipment_cost / 5) * studyDuration;
+        const reagentCost = data.reagent_cost_per_test * sampleCount;
+        const powerConsumption = data.power_consumption_watts / 1000;
+        const timePerTest = data.time_per_test_minutes / 60;
+        const powerCostTotal = powerConsumption * timePerTest * sampleCount * powerCost;
+        const maintenanceCost = data.maintenance_cost_annual * studyDuration;
+        
+        const totalCost = equipmentCost + reagentCost + powerCostTotal + maintenanceCost;
+        const costPerSample = totalCost / sampleCount;
+        
+        equipmentCosts.push(equipmentCost);
+        reagentCosts.push(reagentCost);
+        powerCosts.push(powerCostTotal);
+        maintenanceCosts.push(maintenanceCost);
+        costsPerSample.push(costPerSample);
+    });
+    
+    // Update cost breakdown chart
+    window.costBreakdownChart.data.datasets[0].data = equipmentCosts;
+    window.costBreakdownChart.data.datasets[1].data = reagentCosts;
+    window.costBreakdownChart.data.datasets[2].data = powerCosts;
+    window.costBreakdownChart.data.datasets[3].data = maintenanceCosts;
+    window.costBreakdownChart.update();
+    
+    // Update cost per sample chart
+    window.costPerSampleChart.data.datasets[0].data = costsPerSample;
+    window.costPerSampleChart.update();
+}
+
+function updateSampleSizeScaling() {
+    const costData = {{ cost_data|tojson }};
+    const techniques = ['qPCR', 'LAMP', 'RPA', 'NASBA'];
+    const sampleSizes = [10, 25, 50, 100, 250, 500, 1000, 2000, 5000];
+    
+    const labels = sampleSizes.map(s => s.toString());
+    
+    techniques.forEach((technique, index) => {
+        const data = costData[technique];
+        const costs = sampleSizes.map(sampleCount => {
+            const equipmentCost = data.equipment_cost / 5; // Amortize over 5 years
+            const reagentCost = data.reagent_cost_per_test * sampleCount;
+            const powerConsumption = data.power_consumption_watts / 1000;
+            const timePerTest = data.time_per_test_minutes / 60;
+            const powerCostTotal = powerConsumption * timePerTest * sampleCount * 0.12;
+            const maintenanceCost = data.maintenance_cost_annual;
+            
+            const totalCost = equipmentCost + reagentCost + powerCostTotal + maintenanceCost;
+            return totalCost / sampleCount;
+        });
+        
+        window.sampleSizeScalingChart.data.datasets[index].data = costs;
+    });
+    
+    window.sampleSizeScalingChart.data.labels = labels;
+    window.sampleSizeScalingChart.update();
+}
+</script>
+{% endblock %}

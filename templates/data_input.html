@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Data Input - BioAmplify Analytics{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-upload me-2"></i>
+                Data Input
+            </h1>
+            <p class="lead mb-4">
+                Enter your experimental data manually or upload a CSV/Excel file containing multiple experiments.
+            </p>
+        </div>
+    </div>
+
+    <!-- Input Method Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="inputTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="manual-tab" data-bs-toggle="tab" href="#manual" role="tab">
+                                <i class="fas fa-keyboard me-2"></i>Manual Entry
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="upload-tab" data-bs-toggle="tab" href="#upload" role="tab">
+                                <i class="fas fa-file-upload me-2"></i>File Upload
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="template-tab" data-bs-toggle="tab" href="#template" role="tab">
+                                <i class="fas fa-download me-2"></i>Download Template
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content" id="inputTabsContent">
+                        
+                        <!-- Manual Entry Tab -->
+                        <div class="tab-pane fade show active" id="manual" role="tabpanel">
+                            <form method="POST" action="{{ url_for('submit_experiment') }}" id="manualForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-info-circle me-2"></i>Experiment Information</h5>
+                                        
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">Experiment Name *</label>
+                                            <input type="text" class="form-control" id="name" name="name" required 
+                                                   placeholder="e.g., COVID-19 qPCR Validation">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="technique" class="form-label">Amplification Technique *</label>
+                                            <select class="form-select" id="technique" name="technique" required>
+                                                <option value="">Select technique...</option>
+                                                <option value="PCR">PCR (Polymerase Chain Reaction)</option>
+                                                <option value="qPCR">qPCR (Quantitative PCR)</option>
+                                                <option value="LAMP">LAMP (Loop-mediated Isothermal Amplification)</option>
+                                                <option value="RPA">RPA (Recombinase Polymerase Amplification)</option>
+                                                <option value="NASBA">NASBA (Nucleic Acid Sequence-Based Amplification)</option>
+                                                <option value="TMA">TMA (Transcription-Mediated Amplification)</option>
+                                                <option value="HDA">HDA (Helicase-Dependent Amplification)</option>
+                                                <option value="SDA">SDA (Strand Displacement Amplification)</option>
+                                                <option value="NEAR">NEAR (Nicking Enzyme Amplification Reaction)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="description" name="description" rows="3"
+                                                      placeholder="Optional description of the experiment..."></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="confidence_level" class="form-label">Confidence Level</label>
+                                            <select class="form-select" id="confidence_level" name="confidence_level">
+                                                <option value="0.90">90% Confidence Interval</option>
+                                                <option value="0.95" selected>95% Confidence Interval</option>
+                                                <option value="0.99">99% Confidence Interval</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-table me-2"></i>Confusion Matrix</h5>
+                                        <p class="text-muted small">
+                                            Enter the number of samples for each classification outcome.
+                                        </p>
+                                        
+                                        <div class="table-responsive mb-3">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th></th>
+                                                        <th class="text-center bg-primary text-white">Predicted Positive</th>
+                                                        <th class="text-center bg-primary text-white">Predicted Negative</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <th class="bg-primary text-white">Actual Positive</th>
+                                                        <td>
+                                                            <input type="number" class="form-control text-center" 
+                                                                   id="true_positive" name="true_positive" 
+                                                                   min="0" value="0" required>
+                                                            <small class="text-muted">True Positive (TP)</small>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control text-center" 
+                                                                   id="false_negative" name="false_negative" 
+                                                                   min="0" value="0" required>
+                                                            <small class="text-muted">False Negative (FN)</small>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="bg-primary text-white">Actual Negative</th>
+                                                        <td>
+                                                            <input type="number" class="form-control text-center" 
+                                                                   id="false_positive" name="false_positive" 
+                                                                   min="0" value="0" required>
+                                                            <small class="text-muted">False Positive (FP)</small>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control text-center" 
+                                                                   id="true_negative" name="true_negative" 
+                                                                   min="0" value="0" required>
+                                                            <small class="text-muted">True Negative (TN)</small>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Total Samples:</strong> <span id="totalSamples">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-12 text-center">
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-flask me-2"></i>Create Experiment
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary btn-lg ms-2">
+                                            <i class="fas fa-redo me-2"></i>Reset Form
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- File Upload Tab -->
+                        <div class="tab-pane fade" id="upload" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5><i class="fas fa-cloud-upload-alt me-2"></i>Upload Experimental Data</h5>
+                                    <p class="text-muted">
+                                        Upload a CSV or Excel file containing multiple experiments. 
+                                        Make sure your file includes the required columns.
+                                    </p>
+                                    
+                                    <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" id="uploadForm">
+                                        <div class="mb-3">
+                                            <label for="file" class="form-label">Select File</label>
+                                            <input type="file" class="form-control" id="file" name="file" 
+                                                   accept=".csv,.xlsx,.xls" required>
+                                            <div class="form-text">
+                                                Supported formats: CSV (.csv), Excel (.xlsx, .xls)
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-success btn-lg">
+                                                <i class="fas fa-upload me-2"></i>Upload and Process
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card border-info">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Required Columns</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-unstyled mb-0">
+                                                <li><i class="fas fa-check text-success me-2"></i><code>name</code></li>
+                                                <li><i class="fas fa-check text-success me-2"></i><code>technique</code></li>
+                                                <li><i class="fas fa-check text-success me-2"></i><code>true_positive</code></li>
+                                                <li><i class="fas fa-check text-success me-2"></i><code>false_positive</code></li>
+                                                <li><i class="fas fa-check text-success me-2"></i><code>true_negative</code></li>
+                                                <li><i class="fas fa-check text-success me-2"></i><code>false_negative</code></li>
+                                                <li><i class="fas fa-question text-muted me-2"></i><code>description</code> (optional)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Template Download Tab -->
+                        <div class="tab-pane fade" id="template" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-file-download me-2"></i>Download Templates</h5>
+                                    <p class="text-muted">
+                                        Download a template file to see the expected format for your data.
+                                        The template includes sample data and column descriptions.
+                                    </p>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <a href="#" class="btn btn-outline-success" id="downloadCsvTemplate">
+                                            <i class="fas fa-file-csv me-2"></i>Download CSV Template
+                                        </a>
+                                        <a href="#" class="btn btn-outline-primary" id="downloadExcelTemplate">
+                                            <i class="fas fa-file-excel me-2"></i>Download Excel Template
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card border-secondary">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Template Information</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="card-text small">
+                                                The template includes:
+                                            </p>
+                                            <ul class="small">
+                                                <li>Sample experiment data</li>
+                                                <li>Column headers in the correct format</li>
+                                                <li>Instructions sheet (Excel only)</li>
+                                                <li>Valid technique values</li>
+                                            </ul>
+                                            <div class="alert alert-warning small mt-3">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Replace the sample data with your actual experimental results.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-light">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Need Help?</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-table me-2"></i>Confusion Matrix</h6>
+                            <p class="small text-muted">
+                                Enter the counts for each outcome in your experiment. 
+                                The confusion matrix compares predicted vs actual results.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-cogs me-2"></i>Techniques</h6>
+                            <p class="small text-muted">
+                                Select the amplification technique used in your experiment. 
+                                Different techniques have different cost and performance characteristics.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-chart-bar me-2"></i>Analysis</h6>
+                            <p class="small text-muted">
+                                After submitting your data, the system will calculate diagnostic statistics, 
+                                cost analysis, and allow technique comparisons.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate total samples in real-time
+    const confusionInputs = ['true_positive', 'false_positive', 'true_negative', 'false_negative'];
+    const totalSamplesSpan = document.getElementById('totalSamples');
+    
+    function updateTotalSamples() {
+        let total = 0;
+        confusionInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                total += parseInt(input.value) || 0;
+            }
+        });
+        totalSamplesSpan.textContent = total;
+    }
+    
+    confusionInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', updateTotalSamples);
+        }
+    });
+    
+    // Form validation
+    document.getElementById('manualForm').addEventListener('submit', function(e) {
+        const total = parseInt(totalSamplesSpan.textContent);
+        if (total === 0) {
+            e.preventDefault();
+            alert('Please enter at least one sample in the confusion matrix.');
+        }
+    });
+    
+    // Template download handlers (placeholder - implement server-side endpoints)
+    document.getElementById('downloadCsvTemplate').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Implement CSV template download
+        alert('CSV template download - implement server endpoint');
+    });
+    
+    document.getElementById('downloadExcelTemplate').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Implement Excel template download
+        alert('Excel template download - implement server endpoint');
+    });
+    
+    // File upload validation
+    document.getElementById('file').addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.csv', '.xlsx', '.xls'];
+            const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (!isValid) {
+                alert('Please select a valid CSV or Excel file.');
+                this.value = '';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

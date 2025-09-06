@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis - BioAmplify Analytics{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-chart-line me-2"></i>
+                Experimental Analysis
+            </h1>
+            <p class="lead mb-4">
+                View and compare your experimental results with advanced statistical analysis and Cohen's Kappa calculations.
+            </p>
+        </div>
+    </div>
+
+    {% if experiments %}
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <i class="fas fa-flask fa-2x text-primary mb-2"></i>
+                    <h4 class="mb-0">{{ experiments|length }}</h4>
+                    <small class="text-muted">Total Experiments</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-cogs fa-2x text-success mb-2"></i>
+                    <h4 class="mb-0">{{ techniques|length }}</h4>
+                    <small class="text-muted">Techniques Used</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-2x text-info mb-2"></i>
+                    {% set total_samples = experiments|sum(attribute='true_positive') + experiments|sum(attribute='false_positive') + experiments|sum(attribute='true_negative') + experiments|sum(attribute='false_negative') %}
+                    <h4 class="mb-0">{{ total_samples }}</h4>
+                    <small class="text-muted">Total Samples</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-dollar-sign fa-2x text-warning mb-2"></i>
+                    {% set total_cost = experiments|sum(attribute='total_cost') %}
+                    <h4 class="mb-0">${{ "%.0f"|format(total_cost) }}</h4>
+                    <small class="text-muted">Total Cost</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technique Comparison Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-balance-scale me-2"></i>
+                        Compare Techniques (Cohen's Kappa Analysis)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('compare_techniques') }}" id="compareForm">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="comparison_name" class="form-label">Comparison Name</label>
+                                    <input type="text" class="form-control" id="comparison_name" name="comparison_name"
+                                           value="Technique Comparison {{ experiments[0].created_at.strftime('%Y-%m-%d') if experiments else '' }}"
+                                           placeholder="Enter comparison study name">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Select Experiments to Compare</label>
+                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="sticky-top bg-secondary">
+                                                <tr>
+                                                    <th width="40px">
+                                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                                    </th>
+                                                    <th>Experiment</th>
+                                                    <th>Technique</th>
+                                                    <th>Samples</th>
+                                                    <th>Sensitivity</th>
+                                                    <th>Specificity</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for experiment in experiments %}
+                                                {% set stats = experiment.get_statistics() %}
+                                                {% set total_samples = experiment.true_positive + experiment.false_positive + experiment.true_negative + experiment.false_negative %}
+                                                <tr>
+                                                    <td>
+                                                        <input type="checkbox" name="experiment_ids" value="{{ experiment.id }}" 
+                                                               class="form-check-input experiment-checkbox">
+                                                    </td>
+                                                    <td>
+                                                        <strong>{{ experiment.name }}</strong>
+                                                        {% if experiment.description %}
+                                                        <br><small class="text-muted">{{ experiment.description[:30] }}...</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge 
+                                                            {% if experiment.technique == 'qPCR' %}bg-primary
+                                                            {% elif experiment.technique == 'LAMP' %}bg-success
+                                                            {% elif experiment.technique == 'RPA' %}bg-danger
+                                                            {% else %}bg-warning{% endif %}">
+                                                            {{ experiment.technique }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ total_samples }}</td>
+                                                    <td>{{ "%.1f"|format(stats.sensitivity.percentage) }}%</td>
+                                                    <td>{{ "%.1f"|format(stats.specificity.percentage) }}%</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Cohen's Kappa Analysis</h6>
+                                    <p class="mb-2 small">
+                                        Select 2 or more experiments to calculate inter-rater agreement using Cohen's Kappa statistic.
+                                    </p>
+                                    <ul class="small mb-2">
+                                        <li>Uses GraphPad/Fleiss methodology</li>
+                                        <li>95% confidence intervals</li>
+                                        <li>Altman interpretation scale</li>
+                                        <li>Pairwise comparisons for multiple techniques</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary" id="compareBtn" disabled>
+                                        <i class="fas fa-calculator me-2"></i>Calculate Cohen's Kappa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experiments Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        All Experiments
+                    </h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" id="toggleFilters">
+                            <i class="fas fa-filter me-1"></i>Filters
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filters Panel -->
+                <div class="card-body border-bottom bg-light collapse" id="filtersPanel">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Technique</label>
+                            <select class="form-select" id="techniqueFilter">
+                                <option value="">All Techniques</option>
+                                <option value="PCR">PCR</option>
+                                <option value="qPCR">qPCR</option>
+                                <option value="LAMP">LAMP</option>
+                                <option value="RPA">RPA</option>
+                                <option value="NASBA">NASBA</option>
+                                <option value="TMA">TMA</option>
+                                <option value="HDA">HDA</option>
+                                <option value="SDA">SDA</option>
+                                <option value="NEAR">NEAR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Min Sensitivity (%)</label>
+                            <input type="range" class="form-range" id="sensitivityFilter" min="0" max="100" value="0">
+                            <small class="text-muted">Current: <span id="sensitivityValue">0</span>%</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Min Specificity (%)</label>
+                            <input type="range" class="form-range" id="specificityFilter" min="0" max="100" value="0">
+                            <small class="text-muted">Current: <span id="specificityValue">0</span>%</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Sample Size Range</label>
+                            <select class="form-select" id="sampleSizeFilter">
+                                <option value="">All Sizes</option>
+                                <option value="small">Small (&lt; 50)</option>
+                                <option value="medium">Medium (50-200)</option>
+                                <option value="large">Large (&gt; 200)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="experimentsTable">
+                            <thead class="bg-secondary">
+                                <tr>
+                                    <th>Experiment</th>
+                                    <th>Technique</th>
+                                    <th>Date</th>
+                                    <th>Samples</th>
+                                    <th>Sensitivity</th>
+                                    <th>Specificity</th>
+                                    <th>PPV</th>
+                                    <th>NPV</th>
+                                    <th>Cost/Sample</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for experiment in experiments %}
+                                {% set stats = experiment.get_statistics() %}
+                                {% set total_samples = experiment.true_positive + experiment.false_positive + experiment.true_negative + experiment.false_negative %}
+                                <tr data-technique="{{ experiment.technique }}" 
+                                    data-sensitivity="{{ stats.sensitivity.percentage }}"
+                                    data-specificity="{{ stats.specificity.percentage }}"
+                                    data-samples="{{ total_samples }}">
+                                    <td>
+                                        <strong>{{ experiment.name }}</strong>
+                                        {% if experiment.description %}
+                                        <br><small class="text-muted">{{ experiment.description[:40] }}{% if experiment.description|length > 40 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if experiment.technique == 'qPCR' %}bg-primary
+                                            {% elif experiment.technique == 'LAMP' %}bg-success
+                                            {% elif experiment.technique == 'RPA' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ experiment.technique }}
+                                        </span>
+                                    </td>
+                                    <td>{{ experiment.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ total_samples }}</td>
+                                    <td>
+                                        <span class="fw-bold {% if stats.sensitivity.percentage >= 90 %}text-success{% elif stats.sensitivity.percentage >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ "%.1f"|format(stats.sensitivity.percentage) }}%
+                                        </span>
+                                        <small class="d-block text-muted">
+                                            CI: {{ "%.2f"|format(stats.sensitivity.ci_lower) }}-{{ "%.2f"|format(stats.sensitivity.ci_upper) }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold {% if stats.specificity.percentage >= 90 %}text-success{% elif stats.specificity.percentage >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ "%.1f"|format(stats.specificity.percentage) }}%
+                                        </span>
+                                        <small class="d-block text-muted">
+                                            CI: {{ "%.2f"|format(stats.specificity.ci_lower) }}-{{ "%.2f"|format(stats.specificity.ci_upper) }}
+                                        </small>
+                                    </td>
+                                    <td>{{ "%.1f"|format(stats.ppv.percentage) }}%</td>
+                                    <td>{{ "%.1f"|format(stats.npv.percentage) }}%</td>
+                                    <td>${{ "%.2f"|format(experiment.total_cost / total_samples if total_samples > 0 else 0) }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('view_experiment', id=experiment.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('export_results', format='pdf', experiment_id=experiment.id) }}" 
+                                               class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                            <a href="{{ url_for('export_results', format='excel', experiment_id=experiment.id) }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-file-excel"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technique Performance Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Technique Performance Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="techniqueComparisonChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">No experiments found</h3>
+                <p class="text-muted mb-4">Start by creating your first experiment to see analysis results here.</p>
+                <a href="{{ url_for('data_input') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Create First Experiment
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    if (document.getElementById('experimentsTable')) {
+        $('#experimentsTable').DataTable({
+            pageLength: 25,
+            responsive: true,
+            order: [[2, 'desc']], // Sort by date descending
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>t<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        });
+    }
+    
+    // Comparison form handling
+    const checkboxes = document.querySelectorAll('.experiment-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const compareBtn = document.getElementById('compareBtn');
+    
+    function updateCompareButton() {
+        const checkedCount = document.querySelectorAll('.experiment-checkbox:checked').length;
+        compareBtn.disabled = checkedCount < 2;
+        compareBtn.innerHTML = checkedCount < 2 
+            ? '<i class="fas fa-calculator me-2"></i>Select 2+ experiments'
+            : `<i class="fas fa-calculator me-2"></i>Compare ${checkedCount} experiments`;
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateCompareButton);
+    });
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateCompareButton();
+        });
+    }
+    
+    // Filters toggle
+    document.getElementById('toggleFilters').addEventListener('click', function() {
+        const filtersPanel = document.getElementById('filtersPanel');
+        const isVisible = filtersPanel.classList.contains('show');
+        filtersPanel.classList.toggle('show');
+        this.innerHTML = isVisible 
+            ? '<i class="fas fa-filter me-1"></i>Filters'
+            : '<i class="fas fa-filter me-1"></i>Hide Filters';
+    });
+    
+    // Filter sliders
+    const sensitivityFilter = document.getElementById('sensitivityFilter');
+    const specificityFilter = document.getElementById('specificityFilter');
+    
+    if (sensitivityFilter) {
+        sensitivityFilter.addEventListener('input', function() {
+            document.getElementById('sensitivityValue').textContent = this.value;
+            applyFilters();
+        });
+    }
+    
+    if (specificityFilter) {
+        specificityFilter.addEventListener('input', function() {
+            document.getElementById('specificityValue').textContent = this.value;
+            applyFilters();
+        });
+    }
+    
+    // Apply filters function
+    function applyFilters() {
+        const techniqueFilter = document.getElementById('techniqueFilter').value;
+        const minSensitivity = parseFloat(document.getElementById('sensitivityFilter').value);
+        const minSpecificity = parseFloat(document.getElementById('specificityFilter').value);
+        const sampleSizeFilter = document.getElementById('sampleSizeFilter').value;
+        
+        const rows = document.querySelectorAll('#experimentsTable tbody tr');
+        
+        rows.forEach(row => {
+            const technique = row.dataset.technique;
+            const sensitivity = parseFloat(row.dataset.sensitivity);
+            const specificity = parseFloat(row.dataset.specificity);
+            const samples = parseInt(row.dataset.samples);
+            
+            let show = true;
+            
+            if (techniqueFilter && technique !== techniqueFilter) show = false;
+            if (sensitivity < minSensitivity) show = false;
+            if (specificity < minSpecificity) show = false;
+            
+            if (sampleSizeFilter) {
+                if (sampleSizeFilter === 'small' && samples >= 50) show = false;
+                if (sampleSizeFilter === 'medium' && (samples < 50 || samples > 200)) show = false;
+                if (sampleSizeFilter === 'large' && samples <= 200) show = false;
+            }
+            
+            row.style.display = show ? '' : 'none';
+        });
+    }
+    
+    // Filter change handlers
+    ['techniqueFilter', 'sampleSizeFilter'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyFilters);
+    });
+    
+    // Create technique comparison chart
+    {% if experiments %}
+    createTechniqueComparisonChart();
+    {% endif %}
+});
+
+function createTechniqueComparisonChart() {
+    const ctx = document.getElementById('techniqueComparisonChart').getContext('2d');
+    
+    // Aggregate data by technique
+    const techniqueData = {};
+    const experiments = {
+        {% for experiment in experiments %}
+        "{{ loop.index0 }}": {
+            technique: "{{ experiment.technique }}",
+            stats: {{ experiment.get_statistics()|tojson }}
+        },
+        {% endfor %}
+    };
+    
+    Object.values(experiments).forEach(exp => {
+        if (!techniqueData[exp.technique]) {
+            techniqueData[exp.technique] = {
+                count: 0,
+                sensitivity: 0,
+                specificity: 0,
+                ppv: 0,
+                npv: 0
+            };
+        }
+        techniqueData[exp.technique].count++;
+        techniqueData[exp.technique].sensitivity += exp.stats.sensitivity.percentage;
+        techniqueData[exp.technique].specificity += exp.stats.specificity.percentage;
+        techniqueData[exp.technique].ppv += exp.stats.ppv.percentage;
+        techniqueData[exp.technique].npv += exp.stats.npv.percentage;
+    });
+    
+    // Calculate averages
+    Object.keys(techniqueData).forEach(technique => {
+        const data = techniqueData[technique];
+        data.sensitivity /= data.count;
+        data.specificity /= data.count;
+        data.ppv /= data.count;
+        data.npv /= data.count;
+    });
+    
+    const techniques = Object.keys(techniqueData);
+    const colors = {
+        'qPCR': '#0d6efd',
+        'LAMP': '#198754',
+        'RPA': '#dc3545',
+        'NASBA': '#ffc107'
+    };
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: techniques,
+            datasets: [
+                {
+                    label: 'Sensitivity (%)',
+                    data: techniques.map(t => techniqueData[t].sensitivity),
+                    backgroundColor: techniques.map(t => colors[t] + '80'),
+                    borderColor: techniques.map(t => colors[t]),
+                    borderWidth: 2
+                },
+                {
+                    label: 'Specificity (%)',
+                    data: techniques.map(t => techniqueData[t].specificity),
+                    backgroundColor: techniques.map(t => colors[t] + '60'),
+                    borderColor: techniques.map(t => colors[t]),
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Percentage (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Average Performance by Technique'
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
