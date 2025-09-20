@@ -4,13 +4,15 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+log_level = os.environ.get('LOG_LEVEL', 'INFO')
+logging.basicConfig(level=getattr(logging, log_level.upper()))
 
 db = SQLAlchemy()
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+# Use environment variable for secret key in production
+app.secret_key = os.environ.get("SESSION_SECRET") or os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 
 # Configure the database
 database_url = os.environ.get("DATABASE_URL", "sqlite:///bioinformatics.db")
