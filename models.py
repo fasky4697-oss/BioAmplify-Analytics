@@ -4,6 +4,7 @@ import json
 
 class Experiment(db.Model):
     """Model for storing experimental data and results"""
+    __tablename__ = 'experiments'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
@@ -62,6 +63,7 @@ class Experiment(db.Model):
 
 class ComparisonStudy(db.Model):
     """Model for storing comparison studies between multiple techniques"""
+    __tablename__ = 'comparison_studies'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)

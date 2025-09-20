@@ -2,15 +2,11 @@ import os
 import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+db = SQLAlchemy()
 
 # Create the app
 app = Flask(__name__)
@@ -30,10 +26,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Initialize the app with the extension
 db.init_app(app)
 
-# Import routes after app creation to avoid circular imports
-from routes import *
-
 with app.app_context():
     # Import models to ensure tables are created
     import models
+    # Import routes after models are registered
+    from routes import *
     db.create_all()
